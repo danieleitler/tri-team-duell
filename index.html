@@ -245,7 +245,7 @@ let sending=false, again=false, wtimer=null;
 function cntKey(){ return new Date().toISOString().slice(0,10); }
 function readCnt(){ try{ const o=JSON.parse(localStorage.getItem("ttd-cnt")||"{}"); return o.d===cntKey()?o.n:0; }catch(e){ return 0; } }
 function bumpCnt(){ try{ const d=cntKey(); let o=JSON.parse(localStorage.getItem("ttd-cnt")||"{}"); if(o.d!==d) o={d,n:0}; o.n++; localStorage.setItem("ttd-cnt",JSON.stringify(o)); }catch(e){} }
-function queueDb(){ if(isBeamer()||UI.tab==="vor") return; clearTimeout(wtimer); wtimer=setTimeout(pump,700); }
+function queueDb(){ if(isBeamer()||UI.tab==="vor"||conns.some(live)) return; clearTimeout(wtimer); wtimer=setTimeout(pump,700); }
 async function pump(){ if(sending){ again=true; return; } sending=true;
   try{ do{ again=false; const body=await pack(S); if(body.length>3900) throw new Error("zu groß"); const r=await fetch(RELAY+TOPIC,{method:"POST",body}); if(!r.ok) throw new Error("http "+r.status); bumpCnt(); UI.sync="live"; }while(again); }
   catch(e){ UI.sync="Senden fehlgeschlagen, neuer Versuch"; clearTimeout(wtimer); wtimer=setTimeout(pump,6000); }
@@ -259,20 +259,21 @@ function initRelay(){ try{ const es=new EventSource(RELAY+TOPIC+"/sse?since=late
 /* ---------- PeerJS (direkt, WebRTC mit TURN-Fallback) ---------- */
 const PEER_HOST=TOPIC+"-host"; let conns=[], hostPeer=null, viewPeer=null, lastData=0;
 function setPeer(t){ UI.peer=t; paintSync(); }
-function peerBroadcast(){ if(isBeamer()) return; const alive=[]; conns.forEach(c=>{ if(c.open){ alive.push(c); try{ c.send(S); }catch(e){} } }); conns=alive; UI.nview=conns.length; }
+const live=c=>c.open&&Date.now()-(c._seen||0)<25000;
+function peerBroadcast(){ if(isBeamer()) return; const alive=[]; conns.forEach(c=>{ if(c.open){ alive.push(c); try{ c.send(S); }catch(e){} } }); conns=alive; UI.nview=conns.filter(live).length; }
 function initHost(){
   if(!window.Peer){ setPeer("PeerJS nicht geladen"); return; }
   setPeer("verbinde …");
   const p=new Peer(PEER_HOST); hostPeer=p;
   p.on("open",()=>setPeer("bereit"));
-  p.on("connection",c=>{ c.on("open",()=>{ conns.push(c); UI.nview=conns.filter(x=>x.open).length; try{ c.send(S); }catch(e){} setPeer("verbunden"); });
-    c.on("close",()=>{ conns=conns.filter(x=>x!==c&&x.open); UI.nview=conns.length; setPeer(conns.length?"verbunden":"bereit"); });
+  p.on("connection",c=>{ c._seen=Date.now(); c.on("data",()=>{ c._seen=Date.now(); }); c.on("open",()=>{ c._seen=Date.now(); conns.push(c); UI.nview=conns.filter(live).length; try{ c.send(S); }catch(e){} setPeer("verbunden"); });
+    c.on("close",()=>{ conns=conns.filter(x=>x!==c&&x.open); UI.nview=conns.length; setPeer(conns.length?"verbunden":"bereit"); if(!conns.length) queueDb(); });
     c.on("error",()=>{}); });
   p.on("disconnected",()=>{ setPeer("getrennt, verbinde neu …"); try{ p.reconnect(); }catch(e){} });
   p.on("error",e=>{ if(e.type==="unavailable-id"){ setPeer("ID belegt (altes Fenster offen?), neuer Versuch"); try{p.destroy();}catch(_){} setTimeout(initHost,5000); }
     else if(e.type==="network"||e.type==="server-error"||e.type==="socket-error"||e.type==="socket-closed"){ setPeer("Server nicht erreichbar, neuer Versuch"); setTimeout(()=>{ try{ p.reconnect(); }catch(_){} },5000); }
     else setPeer("Fehler: "+e.type); });
-  setInterval(peerBroadcast,15000);
+  setInterval(()=>{ const n=UI.nview; peerBroadcast(); UI.nview=conns.filter(live).length; if(UI.nview!==n){ if(!UI.nview){ setPeer("bereit"); queueDb(); } else paintSync(); } },5000);
 }
 function initViewer(){
   if(!window.Peer){ setPeer("PeerJS nicht geladen"); return; }
@@ -285,7 +286,7 @@ function initViewer(){
     if(!p||p.destroyed||p.disconnected){ try{ if(p&&!p.destroyed&&p.disconnected){ p.reconnect(); } else { p=new Peer(); } }catch(e){} }
     viewPeer=p;
     const connect=()=>{ c=p.connect(PEER_HOST,{serialization:"json",reliable:true}); let t=setTimeout(()=>{ if(!c.open){ setPeer("Moderator nicht gefunden, neuer Versuch"); try{c.close();}catch(e){} retry(); } },8000);
-      c.on("open",()=>{ clearTimeout(t); busy=false; lastData=Date.now(); setPeer("verbunden"); });
+      c.on("open",()=>{ clearTimeout(t); busy=false; lastData=Date.now(); setPeer("verbunden"); const pg=setInterval(()=>{ if(!c.open){ clearInterval(pg); return; } try{ c.send({ping:1}); }catch(e){} },8000); c.send({ping:1}); });
       c.on("data",o=>{ lastData=Date.now(); if(o&&o.rev!=null&&o.rev!==S.rev) adopt(o); setPeer("verbunden"); });
       c.on("close",()=>{ clearTimeout(t); setPeer("getrennt, neuer Versuch"); retry(); });
       c.on("error",()=>{ clearTimeout(t); retry(); }); };
@@ -302,7 +303,7 @@ function paintSync(){
   const d=document.getElementById("dot"); if(d){ d.className="dot "+(UI.peer==="verbunden"?"ok":"bad"); d.title="Direkt: "+UI.peer; }
   const el=document.getElementById("sync"); if(!el) return;
   const direct="Direkt: <b>"+(UI.peer==="verbunden"?"● ":"")+esc(UI.peer)+"</b>"+(isBeamer()?"":" ("+UI.nview+" Beamer)");
-  const relay=UI.sync==="live" ? "Relay: ● an ("+readCnt()+" gesendet)" : "Relay: "+esc(UI.sync);
+  const relay=UI.sync==="live" ? "Relay: ● bereit als Notnagel ("+readCnt()+" gesendet)" : "Relay: "+esc(UI.sync);
   el.innerHTML=direct+" · "+relay; }
 function paintSyncOld(){ const el=document.getElementById("sync"); if(el) el.innerHTML = UI.sync==="live" ? "<b>● Live-Sync an</b> (iPad ↔ Beamer) · heute gesendet: "+readCnt() : "Nur dieses Gerät ("+esc(UI.sync)+")"; }
 
