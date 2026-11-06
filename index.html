@@ -180,6 +180,7 @@ table.vt td.tn{font-family:var(--display);font-size:24px;width:48px;text-align:c
 <style>html,body{margin:0}</style></head><body>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <div id="app"></div>
+<script>window.addEventListener("error",function(e){var d=document.getElementById("ttderr")||document.body.appendChild(document.createElement("pre"));d.id="ttderr";d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:99999;margin:0;padding:6px;background:#a00;color:#fff;font:12px monospace;white-space:pre-wrap";d.textContent="Fehler: "+e.message+" (Zeile "+e.lineno+")";});</script>
 
 <script>
 "use strict";
