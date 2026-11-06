@@ -231,9 +231,9 @@ const fresh = ()=>({rev:0,step:0,tables:8,names:{},vor:{},pick:null,qs:{},timerE
 let S = fresh();
 let UI = {tab:"flow", confirmReset:false, sync:"lokal", peer:"–", nview:0};
 const KEY = "ttd-state-v1";
-try{ const raw = localStorage.getItem(KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.rev!=null) S={...fresh(),...o}; } }catch(e){}
+try{ const raw = localStorage.getItem(KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.rev!=null) S={...fresh(),...o}; S.step=Math.min(Math.max(0,S.step|0),STEPS.length-1); } }catch(e){}
 let bc = null; try{ bc = new BroadcastChannel("ttd-sync"); }catch(e){}
-function adopt(o){ S={...fresh(),...o}; try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){} peerBroadcast(); render(); }
+function adopt(o){ S={...fresh(),...o}; S.step=Math.min(Math.max(0,S.step|0),STEPS.length-1); try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){} peerBroadcast(); render(); }
 if(bc) bc.onmessage = ev=>{ const o=ev.data; if(o&&o.rev>S.rev) adopt(o); };
 const TOPIC="ttd-a32b3d212f1ef95d3687", RELAY="https://ntfy.sh/";
 async function pack(o){ const json=JSON.stringify(o);
