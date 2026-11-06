@@ -82,7 +82,7 @@ table.vt td.tn{font-family:var(--display);font-size:24px;width:48px;text-align:c
 .stepper b{font-family:var(--display);font-size:26px;min-width:34px;text-align:center;font-weight:400}
 
 /* Beamer */
-.bz{position:fixed;inset:0;background:#000;overflow:hidden}
+.bz{position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:#000;overflow:hidden}
 .bz .back{position:absolute;left:10px;top:10px;z-index:5;opacity:.0;color:#fff;font-size:13px;text-decoration:none;background:rgba(0,0,0,.5);padding:6px 10px;border-radius:8px}
 .bz .dot{position:absolute;right:10px;top:10px;width:10px;height:10px;border-radius:50%;z-index:5;opacity:.5}
 .bz .dot.ok{background:#2c2}.bz .dot.bad{background:#e33}
@@ -438,12 +438,12 @@ function render(){ const keep=window.scrollY;
   document.body.style.padding = isBeamer()?"0":""; document.body.style.overflow=isBeamer()?"hidden":"";
   fit(); tick(); paintSync(); if(!isBeamer()) window.scrollTo(0,keep); }
 function fit(){ document.querySelectorAll(".fitbox").forEach(b=>{ const st=b.querySelector(".stage"); if(!st) return; let sc;
-  if(b.dataset.full){ const W=b.clientWidth,H=b.clientHeight; sc=Math.min(W/1920,H/1080); st.style.transform=`translate(${(W-1920*sc)/2}px,${(H-1080*sc)/2}px) scale(${sc})`; }
+  if(b.dataset.full){ const W=b.clientWidth||innerWidth,H=b.clientHeight||innerHeight; sc=Math.min(W/1920,H/1080); st.style.transform=`translate(${(W-1920*sc)/2}px,${(H-1080*sc)/2}px) scale(${sc})`; }
   else { sc=b.clientWidth/1920; b.style.height=(1080*sc)+"px"; st.style.transform=`scale(${sc})`; } }); }
 function tick(){ document.querySelectorAll("[data-tm]").forEach(el=>{ const rem=Math.ceil((S.timerEnd-Date.now())/1000);
   if(!S.timerEnd||rem<-6){ el.textContent=""; return; } const r=Math.max(0,rem); el.textContent=String(Math.floor(r/60)).padStart(2,"0")+":"+String(r%60).padStart(2,"0"); el.classList.toggle("low",r<=10); }); }
 setInterval(tick,500);
-addEventListener("resize",fit); addEventListener("hashchange",()=>location.reload());
+addEventListener("resize",fit); addEventListener("orientationchange",()=>setTimeout(fit,300)); addEventListener("load",fit); setTimeout(fit,500); setTimeout(fit,2000); try{ document.fonts&&document.fonts.ready.then(fit); }catch(e){} addEventListener("hashchange",()=>location.reload());
 
 /* ---------- Aktionen ---------- */
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-act]"); if(!b||b.disabled) return; const a=b.dataset.act, st=STEPS[S.step];
