@@ -285,7 +285,7 @@ function initViewer(){
     viewPeer=p;
     const connect=()=>{ c=p.connect(PEER_HOST,{serialization:"json",reliable:true}); let t=setTimeout(()=>{ if(!c.open){ setPeer("Moderator nicht gefunden, neuer Versuch"); try{c.close();}catch(e){} retry(); } },8000);
       c.on("open",()=>{ clearTimeout(t); busy=false; lastData=Date.now(); setPeer("verbunden"); });
-      c.on("data",o=>{ lastData=Date.now(); if(o&&o.rev>S.rev) adopt(o); setPeer("verbunden"); });
+      c.on("data",o=>{ lastData=Date.now(); if(o&&o.rev!=null&&o.rev!==S.rev) adopt(o); setPeer("verbunden"); });
       c.on("close",()=>{ clearTimeout(t); setPeer("getrennt, neuer Versuch"); retry(); });
       c.on("error",()=>{ clearTimeout(t); retry(); }); };
     if(p.open) connect(); else p.once("open",connect);
