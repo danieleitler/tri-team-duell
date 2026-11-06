@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow">
+<title>Tri Team FFB Duell</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: Showbühne in 1920x1080, skaliert. Moderator-Konsole (iPad) steuert, Beamer-Ansicht zeigt. Bewusst ein einziger dunkler Bühnen-Look. */
+:root{
+  --night:#07163f; --navy:#0e2566; --panel:#13307f; --blue:#1b4fd6; --sky:#6a9bff;
+  --gold:#ffc83a; --amber:#ff8a1f; --red:#e5322d; --ink:#0a1230; --paper:#f2f5ff; --mute:#a9bbee;
+  --ta:#ff8a1f; --tb:#2fd0bf; --ok:#3fdc8a;
+  --display:"Anton","Impact","Arial Narrow",sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--night);color:var(--paper);font-family:var(--body);font-size:16px;line-height:1.35;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
+button,select,input{font:inherit;color:inherit}
+.btn{background:var(--blue);border:0;color:#fff;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer;min-height:46px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{background:#2a62f0}
+.btn.gold{background:var(--gold);color:var(--ink)}
+.btn.gold:hover{background:#ffd75e}
+.btn.ghost{background:transparent;border:2px solid var(--panel);color:var(--paper)}
+.btn.ghost:hover{border-color:var(--sky)}
+.btn.danger{background:var(--red)}
+.btn.sm{min-height:38px;padding:7px 12px;font-size:14px}
+.btn:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* Moderator */
+.mod{max-width:1180px;margin:0 auto;padding-block:16px 48px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.bar h1{font-family:var(--display);font-weight:400;letter-spacing:.02em;font-size:30px;margin:0;color:var(--gold);text-transform:uppercase}
+.bar .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sync{font-size:13px;color:var(--mute)}
+.sync b{color:var(--ok)}
+.tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:2px solid var(--panel)}
+.tabs button{background:none;border:0;padding:12px 18px;font-weight:700;color:var(--mute);cursor:pointer;border-bottom:4px solid transparent;margin-bottom:-2px;min-height:46px}
+.tabs button[aria-selected=true]{color:var(--gold);border-bottom-color:var(--gold)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--navy);border:1px solid var(--panel);border-radius:14px;padding:16px;min-width:0}
+.card h2{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0 0 10px;font-weight:700}
+.pv{position:relative;width:100%;overflow:hidden;border-radius:10px;border:2px solid var(--panel);background:var(--night)}
+.steps{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-top:10px}
+.steps button{flex:0 0 auto;background:var(--panel);border:0;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;color:var(--paper);cursor:pointer;white-space:nowrap;min-height:40px}
+.steps button[aria-current=true]{background:var(--gold);color:var(--ink)}
+.nav{display:flex;gap:10px;margin-top:10px}
+.nav .btn{flex:1}
+.team-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:10px;font-weight:700;margin-bottom:10px}
+.team-banner.A{background:rgba(255,138,31,.18);border:2px solid var(--ta)}
+.team-banner.B{background:rgba(47,208,191,.16);border:2px solid var(--tb)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:2px solid transparent;border-radius:10px;padding:10px 12px;font-weight:600;cursor:pointer;text-align:left;min-height:48px;display:flex;gap:10px;align-items:center}
+.chip i{font-style:normal;background:var(--ink);border-radius:6px;padding:2px 8px;font-family:var(--cond);font-weight:700;font-size:18px;color:var(--gold)}
+.chip.top{border-color:var(--sky)}
+.chip[disabled]{opacity:.35;cursor:default}
+.row-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.scores{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.sc{border-radius:10px;padding:10px 12px}
+.sc.A{background:rgba(255,138,31,.18)} .sc.B{background:rgba(47,208,191,.16)}
+.sc b{display:block;font-family:var(--display);font-size:34px;font-weight:400}
+.hint{color:var(--mute);font-size:14px}
+.hint.warn{color:var(--gold)}
+.tw{overflow-x:auto}
+table.vt{border-collapse:collapse;width:100%;min-width:1240px}
+table.vt th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);text-align:left;padding:6px 6px;font-weight:700}
+table.vt td{padding:5px 4px;border-top:1px solid var(--panel);vertical-align:middle}
+table.vt select,table.vt input{font-size:14px;width:100%;background:var(--night);border:1px solid var(--panel);border-radius:8px;padding:8px 6px;min-height:42px}
+table.vt td.pt{font-family:var(--display);font-size:26px;text-align:right;padding-right:10px;color:var(--gold);white-space:nowrap}
+table.vt tr.top td{background:rgba(255,200,58,.09)}
+table.vt td.tn{font-family:var(--display);font-size:24px;width:48px;text-align:center}
+.gap{height:14px}
+.qh{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.bar-row{display:grid;grid-template-columns:minmax(120px,1.2fr) 3fr 40px;gap:10px;align-items:center;margin:5px 0;font-size:15px}
+.bar-row .tr{background:var(--night);height:14px;border-radius:7px;overflow:hidden}
+.bar-row .tr i{display:block;height:100%;background:var(--sky);border-radius:7px}
+.bar-row.top .tr i{background:var(--gold)}
+.bar-row span:last-child{text-align:right;font-family:var(--cond);font-weight:700;font-size:18px}
+.stepper{display:inline-flex;align-items:center;gap:8px}
+.stepper b{font-family:var(--display);font-size:26px;min-width:34px;text-align:center;font-weight:400}
+
+/* Beamer */
+.bz{position:fixed;inset:0;background:#000;overflow:hidden}
+.bz .back{position:absolute;left:10px;top:10px;z-index:5;opacity:.0;color:#fff;font-size:13px;text-decoration:none;background:rgba(0,0,0,.5);padding:6px 10px;border-radius:8px}
+.bz .dot{position:absolute;right:10px;top:10px;width:10px;height:10px;border-radius:50%;z-index:5;opacity:.5}
+.bz .dot.ok{background:#2c2}.bz .dot.bad{background:#e33}
+.bz .back:hover,.bz .back:focus{opacity:.9}
+.stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;font-family:var(--body);color:#fff;background:var(--night)}
+.sl{position:absolute;inset:0;background:
+  radial-gradient(circle at 50% 38%,#2d68ff 0%,#164bc4 28%,#0c2266 62%,#07163f 100%)}
+.sl::before{content:"";position:absolute;inset:-40%;background:repeating-conic-gradient(from 0deg at 50% 45%,rgba(255,255,255,.075) 0 5deg,transparent 5deg 10deg);-webkit-mask-image:radial-gradient(circle at 50% 45%,#000 0,transparent 65%);mask-image:radial-gradient(circle at 50% 45%,#000 0,transparent 65%)}
+.sl > *{position:relative}
+.frame{position:absolute!important;inset:34px;border:20px dotted var(--gold);border-radius:56px;pointer-events:none}
+.t-wrap{position:absolute!important;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.t-top{font-family:var(--display);font-size:48px;letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-top:-10px}
+.t-big{font-family:var(--display);font-size:215px;margin-top:6px;line-height:.95;color:var(--gold);text-transform:uppercase;letter-spacing:.01em;
+  text-shadow:0 6px 0 #a35200,0 12px 0 #5b2d00,0 22px 30px rgba(0,0,0,.55)}
+.t-duell{font-family:var(--display);font-size:250px;line-height:1;color:#fff;text-transform:uppercase;padding:0 80px 8px;margin-top:6px;background:linear-gradient(180deg,#ff5a2a,#d8281f);transform:skewX(-7deg);border-radius:18px;
+  box-shadow:0 10px 0 #7a130e,0 24px 40px rgba(0,0,0,.5);text-shadow:0 6px 0 rgba(0,0,0,.28)}
+.t-sub{font-size:44px;font-weight:600;margin-top:34px;max-width:1500px}
+.t-sub em{font-style:normal;color:var(--gold)}
+.t-joke{font-size:28px;color:#cfe0ff;margin-top:10px}
+.medals{display:flex;gap:44px;margin-top:26px}
+.medal{width:112px;height:112px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe38a,#ffb21e 60%,#c47a00);border:8px solid #fff3c4;display:grid;place-items:center;box-shadow:0 10px 24px rgba(0,0,0,.45)}
+.medal svg{width:68px;height:68px}
+.q-wrap{position:absolute!important;inset:0;padding:120px 150px;display:flex;flex-direction:column;justify-content:center}
+.q-tag{font-family:var(--display);font-size:46px;letter-spacing:.1em;color:var(--gold);text-transform:uppercase}
+.q-text{font-family:var(--display);font-size:128px;line-height:1.08;text-transform:uppercase;margin-top:26px;text-shadow:0 6px 0 rgba(0,0,0,.35);text-wrap:balance}
+.q-do{margin-top:46px;font-size:50px;font-weight:600;color:#dbe7ff}
+.q-do b{color:var(--gold)}
+.tm{position:absolute!important;right:110px;top:90px;font-family:var(--display);font-size:150px;color:var(--gold);text-shadow:0 5px 0 rgba(0,0,0,.4);min-width:260px;text-align:right}
+.tm.low{color:#ff6b5e}
+.h-wrap{position:absolute!important;inset:0;padding:90px 140px}
+.h-title{font-family:var(--display);font-size:120px;color:var(--gold);text-transform:uppercase;letter-spacing:.02em;text-shadow:0 5px 0 rgba(0,0,0,.35)}
+.rank{margin-top:26px;display:flex;flex-direction:column;gap:8px}
+.h-wrap.vr{padding:64px 140px}
+.vr .h-title{font-size:92px}
+.legend{position:absolute;left:140px;bottom:70px;font-family:var(--cond);font-weight:700;font-size:34px;color:#cfe0ff;letter-spacing:.04em}
+.rk{display:grid;grid-template-columns:700px minmax(0,1fr) 150px;align-items:center;gap:28px;height:68px}
+.rk .nm{font-family:var(--cond);font-weight:700;font-size:48px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rk .tr{height:44px;background:rgba(0,0,0,.35);border-radius:14px;overflow:hidden}
+.rk .tr i{display:block;height:100%;background:linear-gradient(90deg,#4f8bff,#9fc0ff);border-radius:14px}
+.rk.win .tr i{background:linear-gradient(90deg,#ffb21e,#ffe38a)}
+.rk .pt{font-family:var(--display);font-size:56px;text-align:right}
+.rk.win .nm,.rk.win .pt{color:var(--gold)}
+.rk.win .nm::before{content:"★ "}
+.vs{position:absolute!important;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px}
+.vs-row{display:flex;align-items:stretch;gap:70px}
+.vs-row .vs-mid{align-self:center}
+.vs-team{width:660px;min-height:520px;display:flex;flex-direction:column;justify-content:center;border-radius:30px;padding:40px 30px;text-align:center;font-family:var(--display);text-transform:uppercase;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.vs-team.A{background:linear-gradient(180deg,#ffa13d,#e5700c)}
+.vs-team.B{background:linear-gradient(180deg,#46e0cf,#1ba596)}
+.vs-team .n{font-size:190px;line-height:1}
+.vs-team .l{font-size:60px;letter-spacing:.1em}
+.vs-team .p{font-family:var(--cond);font-weight:700;font-size:46px;margin-top:10px;text-transform:none}
+.vs-mid{font-family:var(--display);font-size:150px;color:var(--gold);text-shadow:0 6px 0 rgba(0,0,0,.4)}
+.rules{margin-top:40px;font-size:50px;line-height:1.5;font-weight:600;max-width:1500px}
+.rules li{margin:8px 0}
+.rules b{color:var(--gold)}
+/* Brett */
+.bd{position:absolute!important;inset:0;padding:36px 70px}
+.bd-q{font-family:var(--display);font-size:60px;line-height:1.12;text-transform:uppercase;text-align:center;margin:34px 90px 0;text-wrap:balance;min-height:110px;display:flex;align-items:center;justify-content:center}
+.bd-no{position:absolute;left:0;right:0;top:18px;text-align:center;font-family:var(--display);font-size:32px;color:var(--gold);letter-spacing:.12em;text-transform:uppercase}
+.bd-main{display:grid;grid-template-columns:330px 1fr 330px;gap:36px;margin-top:14px;align-items:start}
+.tp{border-radius:26px;padding:24px 16px;text-align:center;font-family:var(--display);text-transform:uppercase;border:6px solid transparent;transition:none}
+.tp.A{background:linear-gradient(180deg,#ffa13d,#e5700c)} .tp.B{background:linear-gradient(180deg,#46e0cf,#1ba596)}
+.tp.on{border-color:#fff;box-shadow:0 0 0 8px rgba(255,255,255,.25),0 0 60px rgba(255,255,255,.45)}
+.tp .n{font-size:84px;line-height:1.05}
+.tp .s{font-size:150px;line-height:1.1;margin-top:10px;text-shadow:0 5px 0 rgba(0,0,0,.25)}
+.tp .sub{font-family:var(--cond);font-weight:700;font-size:34px;text-transform:none;opacity:.95}
+.xs{display:flex;gap:10px;justify-content:center;margin-top:20px;height:92px}
+.x{width:84px;height:84px;border-radius:14px;background:rgba(0,0,0,.28);display:grid;place-items:center;font-family:var(--display);font-size:78px;color:rgba(255,255,255,.25)}
+.x.on{background:var(--red);color:#fff;box-shadow:0 0 22px rgba(229,50,45,.8)}
+.ans{display:flex;flex-direction:column;gap:10px}
+.ar{display:grid;grid-template-columns:86px 1fr 160px;height:86px;border-radius:16px;overflow:hidden;background:#0a2a8a;border:5px solid #3d6df0}
+.ar .no{background:#1b4fd6;display:grid;place-items:center;font-family:var(--display);font-size:50px}
+.ar .tx{display:flex;align-items:center;padding:0 24px;font-family:var(--cond);font-weight:700;font-size:52px;text-transform:uppercase;white-space:nowrap;overflow:hidden;letter-spacing:.01em}
+.ar .tx.hid{letter-spacing:.35em;color:rgba(255,255,255,.28);font-size:40px}
+.ar .po{display:grid;place-items:center;font-family:var(--display);font-size:64px;background:#0e1d52;color:var(--gold)}
+.ar.hit.A{background:linear-gradient(90deg,#ffb25a,#f2800f);border-color:#ffd9a8;color:var(--ink)}
+.ar.hit.B{background:linear-gradient(90deg,#6fe8d9,#27b8a8);border-color:#c5faf3;color:var(--ink)}
+.ar.hit .no{background:rgba(0,0,0,.22);color:#fff}
+.ar.hit .po{background:rgba(0,0,0,.78)}
+.ar.res{opacity:.55}
+.ar.hit.fresh{animation:pop .55s ease-out}
+@keyframes pop{0%{transform:scale(.92) rotateX(70deg);filter:brightness(2)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+.bd-foot{position:absolute;left:70px;right:70px;bottom:22px;display:flex;justify-content:space-between;font-family:var(--cond);font-weight:700;font-size:34px;color:#cfe0ff;letter-spacing:.04em;text-transform:uppercase}
+.sumtab{margin-top:22px;width:100%;border-collapse:collapse;font-size:40px}
+.sumtab th{font-family:var(--display);font-weight:400;font-size:44px;padding:6px 24px;text-transform:uppercase}
+.sumtab td{padding:7px 24px;border-top:3px solid rgba(255,255,255,.18);font-family:var(--cond);font-weight:700;text-transform:uppercase}
+.sumtab td.p{text-align:center;font-size:46px;width:300px}
+.sumtab tr.tot td{font-family:var(--display);font-weight:400;font-size:68px;border-top:8px solid var(--gold);color:var(--gold)}
+.sumtab td.w{background:rgba(255,200,58,.2)}
+.champ{margin-top:20px;font-family:var(--display);font-size:78px;color:var(--gold);text-align:center;text-transform:uppercase;text-shadow:0 5px 0 rgba(0,0,0,.4)}
+@media (prefers-reduced-motion:reduce){.ar.hit.fresh{animation:none}}
+</style>
+
+<style>html,body{margin:0}</style></head><body>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<div id="app"></div>
+
+<script>
+"use strict";
+/* ---------- Umfragedaten (Stand 02.11.2026, 25 Antworten) ---------- */
+const N_RESP = 25, DATA_STAND = "02.11.2026";
+const RAW = {
+ q1:{t:"Wofür gibt ein Triathlet viel Geld aus, ohne dass es schneller macht?", s:"Geld ohne Tempo", g:[
+  ["kl","Klamotten & Outfits",5],["aero","Aero-Rad & Aero-Teile",4],["sw","Schwimmzubehör (Neopren, Brille …)",3],["pf","Körperpflege (Duschzeug, Vaseline …)",3],
+  ["sg","Startgebühren",2],["ne","Nahrungsergänzung & Gels",2],["sh","Fahrradschaltung",1],["sob","Sonnenbrillen",1],["mer","Ironman-Merch",1],["lak","Laktatmessgerät",1],["kaf","Kaffee",1]]},
+ q2:{t:"Was ist die beste Ausrede für ein verpasstes Training?", s:"Beste Ausrede", g:[
+  ["arb","Arbeit",5],["kin","Kinder",3],["fam","Familie / Familienfeier",3],["kra","Krank / nicht fit",3],["reg","Regeneration / Tapering",3],["wet","Wetter",2],
+  ["jm","Junkmiles",1],["fv","„Der frühe Vogel kann mich mal“",1],["rad","Heute schon Rad gefahren",1],["phy","Physiotermin",1],["les","Lesen oder aufräumen",1],["lau","Laufen macht mehr Sinn",1]]},
+ q3:{t:"Was vergisst man am häufigsten für einen Triathlon einzupacken?", s:"Vergessen beim Packen", g:[
+  ["snb","Startnummernband",11],["sc","Sonnencreme",3],["bh","Badehose / Tri-Suit",2],["sb","Schwimmbrille",1],["bm","Bademütze",1],["ht","Handtuch",1],["hl","Helm",1],["rs","Radschuhe",1],
+  ["ef","Ehefrau",1],["gl","Gels",1],["wk","Wechselkleidung für danach",1],["lt","Latschen",1]]},
+ q4:{t:"Wer vom Tri Team FFB fehlt im Schwimmtraining nie?", s:"Nie im Schwimmtraining gefehlt", g:[
+  ["ke","Kerstin",10],["st","Steffen",4],["ch","Christian",3],["sp","Stephan",2],["ba","Babs",1],["be","Bernd",1],["di","Dirk",1],["jo","Jochen",1],["ich","„Ich“",1]]},
+ q5:{t:"Was ist die schlimmste Trainingseinheit auf dem Rad?", s:"Schlimmste Radeinheit", g:[
+  ["int","Intervalle / HIT",9],["be","Berg",3],["gn","Gibt’s nicht / ohne E-Rad",3],["ftp","FTP-Test",2],["rol","Rolle / Indoor",2],["lr","Lange Grundlage (Long Ride, GA1)",2],["sw","Sweet Spot",1],["ka","Kraftausdauer",1],["ai","All in",1]]},
+ q6:{t:"Was isst man direkt nach einem langen Training?", s:"Essen nach dem Training", g:[
+  ["nu","Nudeln",4],["sü","Süßes (Schoki, Raider, Eis)",4],["ku","Kuchen",3],["pr","Proteinshake / Eiweiß",3],["po","Pommes / Döner",2],["al","Alles, was da ist",2],
+  ["ei","Eier",1],["kä","Käse",1],["ba","Banane",1],["ho","Honigbrot",1],["le","Leberkas-Semmel",1],["vs","Viel und salzig",1],["ka","Kein Alkohol",1]]},
+ q7:{t:"Was ist der nervigste Anfeuerungsspruch an der Strecke?", s:"Nervigster Anfeuerungsspruch", g:[
+  ["gut","„Du siehst gut aus!“",10],["sch","„Schneller!“ / „Gib Gas!“",3],["nmw","„Nicht mehr weit!“",2],["frei","„Du machst das freiwillig“ / „Du hast dafür bezahlt“",2],
+  ["ws","„Weiter so!“",1],["the","„Therapie wäre günstiger“",1],["bau","„Zieh den Bauch ein!“",1],["lä","„Lächeln!“",1],["zi","„Ziehhhh!“",1],["fe","„Schaust fertig aus“",1],["gel","„Ist das ein Gel in deiner Hose …?“",1],["mann","„Der Mann vor dir ist dein Ziel“",1]]},
+ q8:{t:"Was denkt man auf dem letzten Kilometer eines Wettkampfs?", s:"Gedanke auf dem letzten Kilometer", g:[
+  ["nw","„Nie wieder!“",6],["gg","„Gleich geschafft“",4],["ev","„Endlich vorbei“",2],["nt","„Nichts“ / Tunnel",2],["lg","„Die Strecke ist länger als gedacht“",2],
+  ["wo","Wieso ist das Ziel noch so weit weg?",1],["ep","Reicht die Kraft für einen Endspurt?",1],["da","„Damn!“",1],["üb","Ich muss mich übergeben",1],["wg","„Wie geil!“",1],["kl","Ich will aufs Klo",1],["te","Technik beibehalten, lächeln",1]]}
+};
+const Q = {};
+for (const id in RAW){ Q[id] = {id, t:RAW[id].t, s:RAW[id].s, g:RAW[id].g.map(([k,l,c])=>({k,l,c})).sort((a,b)=>b.c-a.c)}; }
+const VOR = ["q3","q6"], FIN = ["q4","q5","q1","q2","q7"];
+const STEPS = [
+ {id:"title",label:"Titel"},
+ {id:"v1",label:"Vorrunde: Frage 1",q:"q3"},
+ {id:"v2",label:"Vorrunde: Frage 2",q:"q6"},
+ {id:"vres",label:"Ergebnis Vorrunde"},
+ {id:"fin2",label:"Die Finalisten"},
+ {id:"intro",label:"Finale: Regeln"},
+ {id:"f1",label:"Finale 1",q:"q4",fi:0},{id:"f2",label:"Finale 2",q:"q5",fi:1},{id:"f3",label:"Finale 3",q:"q1",fi:2},{id:"f4",label:"Finale 4",q:"q2",fi:3},{id:"f5",label:"Finale 5",q:"q7",fi:4},
+ {id:"sum",label:"Endstand"}
+];
+const grp = (q,k)=>Q[q].g.find(x=>x.k===k);
+const esc = s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- Zustand ---------- */
+const fresh = ()=>({rev:0,step:0,tables:8,names:{},vor:{},pick:null,qs:{},timerEnd:0});
+let S = fresh();
+let UI = {tab:"flow", confirmReset:false, sync:"lokal", peer:"–", nview:0};
+const KEY = "ttd-state-v1";
+try{ const raw = localStorage.getItem(KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.rev!=null) S={...fresh(),...o}; } }catch(e){}
+let bc = null; try{ bc = new BroadcastChannel("ttd-sync"); }catch(e){}
+function adopt(o){ S={...fresh(),...o}; try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){} peerBroadcast(); render(); }
+if(bc) bc.onmessage = ev=>{ const o=ev.data; if(o&&o.rev>S.rev) adopt(o); };
+const TOPIC="ttd-a32b3d212f1ef95d3687", RELAY="https://ntfy.sh/";
+async function pack(o){ const json=JSON.stringify(o);
+  try{ if(window.CompressionStream){ const buf=await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer(); let bin=""; const u=new Uint8Array(buf); for(let k=0;k<u.length;k++) bin+=String.fromCharCode(u[k]); return "g:"+btoa(bin); } }catch(e){}
+  return "j:"+btoa(unescape(encodeURIComponent(json))); }
+async function unpack(m){ if(m.startsWith("g:")){ const u=Uint8Array.from(atob(m.slice(2)),c=>c.charCodeAt(0)); return JSON.parse(await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"))).text()); }
+  return JSON.parse(decodeURIComponent(escape(atob(m.slice(2))))); }
+let sending=false, again=false, wtimer=null;
+function cntKey(){ return new Date().toISOString().slice(0,10); }
+function readCnt(){ try{ const o=JSON.parse(localStorage.getItem("ttd-cnt")||"{}"); return o.d===cntKey()?o.n:0; }catch(e){ return 0; } }
+function bumpCnt(){ try{ const d=cntKey(); let o=JSON.parse(localStorage.getItem("ttd-cnt")||"{}"); if(o.d!==d) o={d,n:0}; o.n++; localStorage.setItem("ttd-cnt",JSON.stringify(o)); }catch(e){} }
+function queueDb(){ if(isBeamer()||UI.tab==="vor") return; clearTimeout(wtimer); wtimer=setTimeout(pump,700); }
+async function pump(){ if(sending){ again=true; return; } sending=true;
+  try{ do{ again=false; const body=await pack(S); if(body.length>3900) throw new Error("zu groß"); const r=await fetch(RELAY+TOPIC,{method:"POST",body}); if(!r.ok) throw new Error("http "+r.status); bumpCnt(); UI.sync="live"; }while(again); }
+  catch(e){ UI.sync="Senden fehlgeschlagen, neuer Versuch"; clearTimeout(wtimer); wtimer=setTimeout(pump,6000); }
+  sending=false; paintSync(); }
+function mut(fn){ fn(S); S.rev++; try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){} try{bc&&bc.postMessage(JSON.parse(JSON.stringify(S)))}catch(e){} queueDb(); peerBroadcast(); render(); }
+function initRelay(){ try{ const es=new EventSource(RELAY+TOPIC+"/sse?since=latest");
+  es.onopen=()=>{ UI.sync="live"; paintSync(); };
+  es.onerror=()=>{ UI.sync="offline"; paintSync(); };
+  es.onmessage=async ev=>{ try{ const m=JSON.parse(ev.data); if(m.event!=="message"||!m.message) return; const o=await unpack(m.message); if(o&&o.rev>S.rev) adopt(o); }catch(e){} };
+ }catch(e){ UI.sync="offline"; } }
+/* ---------- PeerJS (direkt, WebRTC mit TURN-Fallback) ---------- */
+const PEER_HOST=TOPIC+"-host"; let conns=[], hostPeer=null, viewPeer=null, lastData=0;
+function setPeer(t){ UI.peer=t; paintSync(); }
+function peerBroadcast(){ if(isBeamer()) return; const alive=[]; conns.forEach(c=>{ if(c.open){ alive.push(c); try{ c.send(S); }catch(e){} } }); conns=alive; UI.nview=conns.length; }
+function initHost(){
+  if(!window.Peer){ setPeer("PeerJS nicht geladen"); return; }
+  setPeer("verbinde …");
+  const p=new Peer(PEER_HOST); hostPeer=p;
+  p.on("open",()=>setPeer("bereit"));
+  p.on("connection",c=>{ c.on("open",()=>{ conns.push(c); UI.nview=conns.filter(x=>x.open).length; try{ c.send(S); }catch(e){} setPeer("verbunden"); });
+    c.on("close",()=>{ conns=conns.filter(x=>x!==c&&x.open); UI.nview=conns.length; setPeer(conns.length?"verbunden":"bereit"); });
+    c.on("error",()=>{}); });
+  p.on("disconnected",()=>{ setPeer("getrennt, verbinde neu …"); try{ p.reconnect(); }catch(e){} });
+  p.on("error",e=>{ if(e.type==="unavailable-id"){ setPeer("ID belegt (altes Fenster offen?), neuer Versuch"); try{p.destroy();}catch(_){} setTimeout(initHost,5000); }
+    else if(e.type==="network"||e.type==="server-error"||e.type==="socket-error"||e.type==="socket-closed"){ setPeer("Server nicht erreichbar, neuer Versuch"); setTimeout(()=>{ try{ p.reconnect(); }catch(_){} },5000); }
+    else setPeer("Fehler: "+e.type); });
+  setInterval(peerBroadcast,15000);
+}
+function initViewer(){
+  if(!window.Peer){ setPeer("PeerJS nicht geladen"); return; }
+  setPeer("verbinde …");
+  let p=null, c=null, busy=false;
+  function retry(ms){ busy=false; setTimeout(go,ms||3000); }
+  function go(){
+    if(busy) return; busy=true;
+    try{ if(c) c.close(); }catch(e){}
+    if(!p||p.destroyed||p.disconnected){ try{ if(p&&!p.destroyed&&p.disconnected){ p.reconnect(); } else { p=new Peer(); } }catch(e){} }
+    viewPeer=p;
+    const connect=()=>{ c=p.connect(PEER_HOST,{serialization:"json",reliable:true}); let t=setTimeout(()=>{ if(!c.open){ setPeer("Moderator nicht gefunden, neuer Versuch"); try{c.close();}catch(e){} retry(); } },8000);
+      c.on("open",()=>{ clearTimeout(t); busy=false; lastData=Date.now(); setPeer("verbunden"); });
+      c.on("data",o=>{ lastData=Date.now(); if(o&&o.rev>S.rev) adopt(o); setPeer("verbunden"); });
+      c.on("close",()=>{ clearTimeout(t); setPeer("getrennt, neuer Versuch"); retry(); });
+      c.on("error",()=>{ clearTimeout(t); retry(); }); };
+    if(p.open) connect(); else p.once("open",connect);
+    p.off&&0; if(!p._ttd){ p._ttd=1;
+      p.on("error",e=>{ if(e.type==="peer-unavailable"){ setPeer("Moderator noch nicht online, neuer Versuch"); } else setPeer("Fehler: "+e.type); retry(); });
+      p.on("disconnected",()=>{ setPeer("getrennt, verbinde neu …"); busy=false; setTimeout(go,3000); }); }
+  }
+  go();
+  setInterval(()=>{ if(lastData&&Date.now()-lastData>50000){ lastData=0; setPeer("keine Daten, neuer Versuch"); busy=false; go(); } },5000);
+}
+function initPeer(){ try{ isBeamer()? initViewer() : initHost(); }catch(e){ setPeer("Fehler"); } }
+function paintSync(){
+  const d=document.getElementById("dot"); if(d){ d.className="dot "+(UI.peer==="verbunden"?"ok":"bad"); d.title="Direkt: "+UI.peer; }
+  const el=document.getElementById("sync"); if(!el) return;
+  const direct="Direkt: <b>"+(UI.peer==="verbunden"?"● ":"")+esc(UI.peer)+"</b>"+(isBeamer()?"":" ("+UI.nview+" Beamer)");
+  const relay=UI.sync==="live" ? "Relay: ● an ("+readCnt()+" gesendet)" : "Relay: "+esc(UI.sync);
+  el.innerHTML=direct+" · "+relay; }
+function paintSyncOld(){ const el=document.getElementById("sync"); if(el) el.innerHTML = UI.sync==="live" ? "<b>● Live-Sync an</b> (iPad ↔ Beamer) · heute gesendet: "+readCnt() : "Nur dieses Gerät ("+esc(UI.sync)+")"; }
+
+/* ---------- Berechnungen ---------- */
+const tl = t=> S.names[t] ? `Tisch ${t} – ${esc(S.names[t])}` : `Tisch ${t}`;
+const tlShort = t=> `Tisch ${t}`;
+function vorSlots(t,q){ return ((S.vor[t]||{})[q]||["","",""]); }
+function vorPts(t,q){ const seen=new Set(); let p=0; for(const k of vorSlots(t,q)){ if(k&&!seen.has(k)){ seen.add(k); p+=grp(q,k)?.c||0; } } return p; }
+const vorTotal = t=> VOR.reduce((a,q)=>a+vorPts(t,q),0);
+function ranking(){ const r=[]; for(let t=1;t<=S.tables;t++) r.push({t,p:vorTotal(t)}); return r.sort((a,b)=>b.p-a.p||a.t-b.t); }
+function finalists(){ if(S.pick&&S.pick[0]&&S.pick[1]&&S.pick[0]!==S.pick[1]) return S.pick; const r=ranking(); return [r[0].t,r[1].t]; }
+function tieAt2(){ const r=ranking(); return r.length>2 && r[1].p===r[2].p && r[1].p>0; }
+const qst = q=> S.qs[q]||{log:[],solved:false};
+const startTeam = fi=> fi%2===0?"A":"B";
+function activeTeam(q,fi){ const n=qst(q).log.length; return ((startTeam(fi)==="A"?0:1)+n)%2===0?"A":"B"; }
+function revealed(q){ const m={}; for(const e of qst(q).log) if(e.k) m[e.k]=e.team; return m; }
+function strikes(q){ const s={A:0,B:0}; for(const e of qst(q).log) if(!e.k) s[e.team]++; return s; }
+function scoreQ(q,team){ const m=revealed(q); let p=0; for(const k in m) if(m[k]===team) p+=grp(q,k).c; return p; }
+const totalTeam = team=> FIN.reduce((a,q)=>a+scoreQ(q,team),0);
+const qDone = q=> qst(q).solved || qst(q).log.length>=6;
+
+/* ---------- Beamer-Folien ---------- */
+const SVG = {
+ swim:'<svg viewBox="0 0 64 64" fill="none" stroke="#4a2a00" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><circle cx="44" cy="16" r="6" fill="#4a2a00"/><path d="M6 38c6-6 10 6 16 0s10 6 16 0 10 6 16 0M10 28l16-6 12 8"/><path d="M6 52c6-6 10 6 16 0s10 6 16 0 10 6 16 0"/></svg>',
+ bike:'<svg viewBox="0 0 64 64" fill="none" stroke="#4a2a00" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="42" r="11"/><circle cx="50" cy="42" r="11"/><path d="M14 42l12-20h14l10 20M26 22l10 20h-22M40 22l-3-8h8"/></svg>',
+ run:'<svg viewBox="0 0 64 64" fill="none" stroke="#4a2a00" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><circle cx="40" cy="12" r="6" fill="#4a2a00"/><path d="M36 22l-8 14 10 8-2 14M28 36l-12 4M36 22l12 8 8-2M30 30l-8-6"/></svg>'
+};
+const medals = ()=>`<div class="medals">${["swim","bike","run"].map(k=>`<div class="medal">${SVG[k]}</div>`).join("")}</div>`;
+
+function slideTitle(){ return `<div class="sl"><div class="frame"></div><div class="t-wrap">
+  <div class="t-top">Die große Weihnachts-Show</div>
+  <div class="t-big">Tri Team FFB</div><div class="t-duell">Duell</div>
+  <div class="t-sub">Wir haben <em>${N_RESP} Vereinsmitglieder</em> gefragt.<br>Wer kennt die Antworten?</div>
+  <div class="t-joke">Schwimmen, Rad, Laufen … und jetzt: raten.</div>${medals()}</div></div>`; }
+function slideQ(st,n){ const q=Q[st.q]; const vor=st.id==="v1"||st.id==="v2"; const tb=st.id==="tb";
+  return `<div class="sl"><div class="frame"></div><div class="tm" data-tm></div><div class="q-wrap">
+   <div class="q-tag">${tb?"Stichfrage":"Vorrunde · Frage "+(st.id==="v1"?1:2)+" von 2"}</div>
+   <div class="q-text">${esc(q.t)}</div>
+   <div class="q-do">${tb?"Eine Antwort pro Tisch aufschreiben!":"Schreibt eure <b>Top 3 Antworten</b> auf den Zettel!"}</div></div></div>`; }
+function slideVres(){ const all=ranking(), f=finalists(), mx=Math.max(1,...all.map(x=>x.p));
+  const r=all.slice(0,8); for(const t of f){ if(!r.some(x=>x.t===t)) r.push(all.find(x=>x.t===t)); }
+  return `<div class="sl"><div class="frame"></div><div class="h-wrap vr"><div class="h-title">Ergebnis der Vorrunde</div><div class="rank">
+   ${r.map(x=>`<div class="rk ${f.includes(x.t)?"win":""}"><div class="nm">${tl(x.t)}</div><div class="tr"><i style="width:${Math.round(x.p/mx*100)}%"></i></div><div class="pt">${x.p}</div></div>`).join("")}
+  </div><div class="legend">★ = im Finale</div></div></div>`; }
+function slideFin2(){ const f=finalists(); const [a,b]=f;
+  return `<div class="sl"><div class="frame"></div><div class="vs"><div class="h-title">Im Finale</div><div class="vs-row">
+   <div class="vs-team A"><div class="l">Tisch</div><div class="n">${a}</div>${S.names[a]?`<div class="p">${esc(S.names[a])}</div>`:""}<div class="p">${vorTotal(a)} Punkte</div></div>
+   <div class="vs-mid">VS</div>
+   <div class="vs-team B"><div class="l">Tisch</div><div class="n">${b}</div>${S.names[b]?`<div class="p">${esc(S.names[b])}</div>`:""}<div class="p">${vorTotal(b)} Punkte</div></div></div></div></div>`; }
+function slideIntro(){ return `<div class="sl"><div class="frame"></div><div class="h-wrap"><div class="h-title">Das Finale</div>
+  <ul class="rules"><li><b>5 Fragen</b>, je 3 Spieler pro Team</li><li>Abwechselnd antworten, <b>jedes Team dreimal</b> pro Frage</li><li>Jede Antwort zählt so viele Punkte, wie Vereinsmitglieder sie genannt haben</li><li>Drei Fehlversuche je Frage? Dann hilft nur Training.</li></ul></div></div>`; }
+function slideBoard(st){ const q=Q[st.q], f=finalists(), m=revealed(st.q), s=strikes(st.q), solved=qst(st.q).solved;
+  const act = qDone(st.q)?null:activeTeam(st.q,st.fi);
+  const top=q.g.slice(0,8), extra=Object.keys(m).filter(k=>!top.some(x=>x.k===k)).map(k=>grp(st.q,k));
+  const rows=[...top,...extra]; const lastHit=[...qst(st.q).log].reverse().find(e=>e.k)?.k;
+  const rowHtml=rows.map((r,i)=>{ const team=m[r.k]; const isRes=!team&&solved;
+    return `<div class="ar ${team?"hit "+team:""} ${isRes?"res":""} ${team&&r.k===lastHit?"fresh":""}"><div class="no">${i+1}</div><div class="tx ${team||isRes?"":"hid"}">${team||isRes?esc(r.l):"· · · · · ·"}</div><div class="po">${team||isRes?r.c:"??"}</div></div>`; }).join("");
+  const xs=t=>`<div class="xs">${[0,1,2].map(i=>`<div class="x ${s[t]>i?"on":""}">✕</div>`).join("")}</div>`;
+  const tp=(t,tab)=>`<div class="tp ${t} ${act===t?"on":""}"><div class="sub">Tisch</div><div class="n">${tab}</div><div class="s">${scoreQ(st.q,t)}</div><div class="sub">${t===act?"am Zug":"Punkte"}</div>${xs(t)}</div>`;
+  return `<div class="sl"><div class="bd"><div class="bd-no">Frage ${st.fi+1} / 5</div><div class="bd-q">${esc(q.t)}</div>
+   <div class="bd-main">${tp("A",f[0])}<div class="ans">${rowHtml}</div>${tp("B",f[1])}</div>
+   <div class="bd-foot"><span>Gesamt Tisch ${f[0]}: ${totalTeam("A")}</span><span>Gesamt Tisch ${f[1]}: ${totalTeam("B")}</span></div></div></div>`; }
+function slideSum(){ const f=finalists(), A=totalTeam("A"), B=totalTeam("B");
+  const rows=FIN.map((q,i)=>{ const a=scoreQ(q,"A"), b=scoreQ(q,"B"); return `<tr><td>${i+1}. ${esc(Q[q].s)}</td><td class="p ${a>b?"w":""}">${a}</td><td class="p ${b>a?"w":""}">${b}</td></tr>`; }).join("");
+  const champ=A===B?"Unentschieden!":`Tisch ${A>B?f[0]:f[1]} gewinnt!`;
+  return `<div class="sl"><div class="frame"></div><div class="h-wrap" style="padding-top:56px;padding-bottom:40px"><div class="h-title" style="font-size:84px">Endstand</div>
+   <table class="sumtab"><thead><tr><th></th><th>Tisch ${f[0]}</th><th>Tisch ${f[1]}</th></tr></thead><tbody>${rows}
+   <tr class="tot"><td>Gesamt</td><td class="p ${A>B?"w":""}">${A}</td><td class="p ${B>A?"w":""}">${B}</td></tr></tbody></table>
+   <div class="champ">★ ${champ} ★</div></div></div>`; }
+function slide(){ const st=STEPS[S.step]; switch(st.id){
+  case "title": return slideTitle(); case "v1": case "v2": return slideQ(st);
+  case "vres": return slideVres(); case "fin2": return slideFin2(); case "intro": return slideIntro(); case "sum": return slideSum();
+  default: return slideBoard(st); } }
+const stageHtml = ()=>`<div class="stage">${slide()}</div>`;
+
+/* ---------- Moderator ---------- */
+function flowControls(){ const st=STEPS[S.step]; let h="";
+  if(["v1","v2"].includes(st.id)){
+    h+=`<div class="card"><h2>Zeit</h2><div class="row-act" style="margin-top:0"><button class="btn gold" data-act="timer" data-v="90">90 s starten</button><button class="btn" data-act="timer" data-v="60">60 s</button><button class="btn ghost" data-act="timer" data-v="0">Timer aus</button></div>
+    <p class="hint">Der Timer läuft auf dem Beamer. Danach: Zettel einsammeln und im Tab „Vorrunde“ eintragen.</p></div>`; }
+  if(st.id==="vres"||st.id==="fin2"){
+    const r=ranking(), f=finalists();
+    h+=`<div class="card"><h2>Finalisten</h2>${tieAt2()?`<p class="hint warn">Gleichstand um Platz 2 (${r[1].p} Punkte): Finalisten unten manuell wählen (z. B. Schätzfrage oder Applaus).</p>`:""}
+    <div class="row-act" style="margin-top:0"><label>Team A (orange)<br><select id="pickA" data-pick="0">${r.map(x=>`<option value="${x.t}" ${x.t===f[0]?"selected":""}>${tlShort(x.t)} · ${x.p}</option>`).join("")}</select></label>
+    <label>Team B (türkis)<br><select id="pickB" data-pick="1">${r.map(x=>`<option value="${x.t}" ${x.t===f[1]?"selected":""}>${tlShort(x.t)} · ${x.p}</option>`).join("")}</select></label>
+    <button class="btn ghost sm" data-act="pickauto">Automatisch</button></div></div>`; }
+  if(st.fi!=null){ const q=st.q, f=finalists(), m=revealed(q), s=strikes(q), done=qDone(q), act=activeTeam(q,st.fi), n=qst(q).log.length;
+    h+=`<div class="card"><h2>${esc(Q[q].s)}</h2>
+     <div class="scores"><div class="sc A">Tisch ${f[0]}<b>${scoreQ(q,"A")}</b><span class="hint">Fehler: ${s.A}/3</span></div><div class="sc B">Tisch ${f[1]}<b>${scoreQ(q,"B")}</b><span class="hint">Fehler: ${s.B}/3</span></div></div>
+     ${done?`<div class="team-banner ${act}"><span>${qst(q).solved?"Frage aufgelöst":"Alle 6 Antworten gegeben"}</span></div>`
+        :`<div class="team-banner ${act}"><span>Am Zug: <b>Tisch ${act==="A"?f[0]:f[1]}</b></span><span class="hint">Antwort ${n+1} von 6</span></div>`}
+     <p class="hint" style="margin:0 0 8px">Was hat das Team gesagt? Passende Antwort antippen:</p>
+     <div class="chips">${Q[q].g.map((x,i)=>`<button class="chip ${i<8?"top":""}" data-act="hit" data-k="${x.k}" ${m[x.k]||done?"disabled":""}><i>${x.c}</i>${esc(x.l)}</button>`).join("")}</div>
+     <div class="row-act"><button class="btn danger" data-act="miss" ${done?"disabled":""}>✕ Kein Treffer</button><button class="btn ghost" data-act="undo" ${n?"":"disabled"}>↶ Rückgängig</button>
+     <button class="btn ghost" data-act="${qst(q).solved?"unsolve":"solve"}">${qst(q).solved?"Auflösung verbergen":"Alle Antworten auflösen"}</button></div>
+     <p class="hint">Blau umrandet = auf dem Brett. Weitere Antworten werden unten am Brett angehängt.</p></div>`; }
+  return h; }
+
+function vorTab(){ let rows=""; const r=ranking(), top=new Set(finalists());
+  for(let t=1;t<=S.tables;t++){ rows+=`<tr class="${top.has(t)?"top":""}"><td class="tn">${t}</td><td style="min-width:120px"><input type="text" id="nm${t}" data-name="${t}" value="${esc(S.names[t]||"")}" placeholder="Name (optional)" maxlength="28"></td>`;
+    for(const q of VOR){ const sl=vorSlots(t,q); const dup=new Set(sl.filter(Boolean)).size<sl.filter(Boolean).length;
+      for(let i=0;i<3;i++) rows+=`<td><select id="s${t}${q}${i}" data-slot="${t}|${q}|${i}" aria-label="Tisch ${t}, ${esc(Q[q].s)}, Antwort ${i+1}"><option value="">–</option>${Q[q].g.map(x=>`<option value="${x.k}" ${sl[i]===x.k?"selected":""}>${esc(x.l)} (${x.c})</option>`).join("")}</select></td>`;
+      rows+=`<td class="pt" title="${dup?"Doppelte Antwort zählt nur einmal":""}">${vorPts(t,q)}${dup?"*":""}</td>`; }
+    rows+=`<td class="pt">${vorTotal(t)}</td></tr>`; }
+  return `<div class="card"><div class="qh"><h2>Zettel eintragen</h2><div class="stepper"><span class="hint">Tische</span><button class="btn ghost sm" data-act="tbl-" aria-label="Weniger Tische">−</button><b>${S.tables}</b><button class="btn ghost sm" data-act="tbl+" aria-label="Mehr Tische">+</button></div></div>
+   <p class="hint">Pro Antwort die passende Umfrage-Antwort wählen (Zahl = Nennungen = Punkte). Nicht in der Liste? Leer lassen, null Punkte. Doppelte Antworten zählen einmal (*).</p>
+   <div class="tw"><table class="vt"><thead><tr><th>#</th><th>Tisch</th><th colspan="3">${esc(Q.q3.s)}</th><th>Pkt</th><th colspan="3">${esc(Q.q6.s)}</th><th>Pkt</th><th>Σ</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div class="gap"></div><h2>Zwischenstand</h2>${r.map((x,i)=>`<div class="bar-row ${top.has(x.t)?"top":""}"><span>${tl(x.t)}</span><span class="tr"><i style="width:${Math.round(x.p/Math.max(1,r[0].p)*100)}%"></i></span><span>${x.p}</span></div>`).join("")}
+   ${tieAt2()?`<p class="hint warn">Gleichstand um Platz 2. Finalisten im Tab „Ablauf“ manuell wählen.</p>`:""}</div>`; }
+
+function dataTab(){ return `<div class="card"><h2>Umfragedaten</h2><p class="hint">Stand ${DATA_STAND}, ${N_RESP} Antworten. Endstand nach Umfrageende am 15.11. Ähnliche Antworten sind zusammengefasst, die Zahl ist die Punktzahl.</p>
+  ${["q3","q6","q4","q5","q1","q2","q7","q8"].map(id=>{ const q=Q[id]; return `<div class="gap"></div><h2>${esc(q.t)} ${VOR.includes(id)?"· Vorrunde":FIN.includes(id)?"· Finale "+(FIN.indexOf(id)+1):"· Reserve"}</h2>`+q.g.map((x,i)=>`<div class="bar-row ${i<8?"":""}"><span>${esc(x.l)}</span><span class="tr"><i style="width:${Math.round(x.c/q.g[0].c*100)}%"></i></span><span>${x.c}</span></div>`).join(""); }).join("")}</div>`; }
+
+function modHtml(){ const st=STEPS[S.step];
+  const tabs=[["flow","Ablauf"],["vor","Vorrunde"],["data","Daten"]];
+  let body="";
+  if(UI.tab==="flow") body=`<div class="grid2"><div><div class="card"><h2>Beamer-Vorschau · ${esc(st.label)}</h2><div class="pv fitbox" id="pv">${stageHtml()}</div>
+    <div class="nav"><button class="btn ghost" data-act="prev" ${S.step===0?"disabled":""}>◀ Zurück</button><button class="btn gold" data-act="next" ${S.step===STEPS.length-1?"disabled":""}>Weiter ▶</button></div>
+    <div class="steps">${STEPS.map((x,i)=>`<button data-act="go" data-i="${i}" ${i===S.step?'aria-current="true"':""}>${esc(x.label)}</button>`).join("")}</div></div></div>
+    <div>${flowControls()||`<div class="card"><h2>Hinweis</h2><p class="hint">Hier erscheinen die Steuerelemente zum aktuellen Schritt.</p></div>`}</div></div>`;
+  else if(UI.tab==="vor") body=vorTab(); else body=dataTab();
+  return `<div class="mod"><header class="bar"><h1>Tri Team FFB Duell</h1><div class="right"><span class="sync" id="sync"></span><a class="btn gold sm" href="#beamer">Beamer-Ansicht</a>
+    <button class="btn ghost sm ${UI.confirmReset?"danger":""}" data-act="reset">${UI.confirmReset?"Wirklich alles zurücksetzen?":"Zurücksetzen"}</button></div></header>
+    <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" data-act="tab" data-v="${k}" aria-selected="${UI.tab===k}">${l}</button>`).join("")}</nav>${body}</div>`; }
+
+function beamerHtml(){ return `<div class="bz fitbox" data-full="1">${stageHtml()}<a class="back" href="#mod">← Moderator</a><div class="dot bad" id="dot"></div></div>`; }
+
+/* ---------- Rendering ---------- */
+const app=document.getElementById("app");
+const isBeamer=()=>location.hash==="#beamer";
+function render(){ const keep=window.scrollY;
+  app.innerHTML = isBeamer()? beamerHtml() : modHtml();
+  document.body.style.padding = isBeamer()?"0":""; document.body.style.overflow=isBeamer()?"hidden":"";
+  fit(); tick(); paintSync(); if(!isBeamer()) window.scrollTo(0,keep); }
+function fit(){ document.querySelectorAll(".fitbox").forEach(b=>{ const st=b.querySelector(".stage"); if(!st) return; let sc;
+  if(b.dataset.full){ const W=b.clientWidth,H=b.clientHeight; sc=Math.min(W/1920,H/1080); st.style.transform=`translate(${(W-1920*sc)/2}px,${(H-1080*sc)/2}px) scale(${sc})`; }
+  else { sc=b.clientWidth/1920; b.style.height=(1080*sc)+"px"; st.style.transform=`scale(${sc})`; } }); }
+function tick(){ document.querySelectorAll("[data-tm]").forEach(el=>{ const rem=Math.ceil((S.timerEnd-Date.now())/1000);
+  if(!S.timerEnd||rem<-6){ el.textContent=""; return; } const r=Math.max(0,rem); el.textContent=String(Math.floor(r/60)).padStart(2,"0")+":"+String(r%60).padStart(2,"0"); el.classList.toggle("low",r<=10); }); }
+setInterval(tick,500);
+addEventListener("resize",fit); addEventListener("hashchange",()=>location.reload());
+
+/* ---------- Aktionen ---------- */
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-act]"); if(!b||b.disabled) return; const a=b.dataset.act, st=STEPS[S.step];
+  if(a==="tab"){ const was=UI.tab; UI.tab=b.dataset.v; render(); if(was==="vor"&&UI.tab!=="vor") queueDb(); return; }
+  if(a==="reset"){ if(!UI.confirmReset){ UI.confirmReset=true; render(); setTimeout(()=>{ if(UI.confirmReset){UI.confirmReset=false; render();} },4000); return; } UI.confirmReset=false; mut(o=>{ Object.assign(o,fresh(),{rev:o.rev}); }); return; }
+  if(a==="prev") return mut(o=>{o.step=Math.max(0,o.step-1)});
+  if(a==="next") return mut(o=>{o.step=Math.min(STEPS.length-1,o.step+1)});
+  if(a==="go") return mut(o=>{o.step=+b.dataset.i});
+  if(a==="tbl+") return mut(o=>{o.tables=Math.min(16,o.tables+1)});
+  if(a==="tbl-") return mut(o=>{o.tables=Math.max(3,o.tables-1)});
+  if(a==="timer") return mut(o=>{ const v=+b.dataset.v; o.timerEnd=v?Date.now()+v*1000:0; });
+  if(a==="pickauto") return mut(o=>{o.pick=null});
+  const q=st.q; if(!q) return;
+  const ensure=o=>{ o.qs[q]=o.qs[q]||{log:[],solved:false}; return o.qs[q]; };
+  if(a==="hit") return mut(o=>{ const s=ensure(o); if(s.solved||s.log.length>=6) return; if(s.log.some(x=>x.k===b.dataset.k)) return; s.log.push({k:b.dataset.k,team:activeTeam(q,st.fi)}); });
+  if(a==="miss") return mut(o=>{ const s=ensure(o); if(s.solved||s.log.length>=6) return; s.log.push({team:activeTeam(q,st.fi)}); });
+  if(a==="undo") return mut(o=>{ const s=ensure(o); s.log.pop(); s.solved=false; });
+  if(a==="solve") return mut(o=>{ ensure(o).solved=true; });
+  if(a==="unsolve") return mut(o=>{ ensure(o).solved=false; });
+});
+document.addEventListener("change",e=>{ const t=e.target;
+  if(t.dataset.slot){ const [tb,q,i]=t.dataset.slot.split("|"); mut(o=>{ o.vor[tb]=o.vor[tb]||{}; o.vor[tb][q]=o.vor[tb][q]||["","",""]; o.vor[tb][q][+i]=t.value; }); }
+  else if(t.dataset.name){ mut(o=>{ o.names[t.dataset.name]=t.value.trim(); }); }
+  else if(t.dataset.pick!=null){ const idx=+t.dataset.pick; mut(o=>{ const cur=finalists().slice(); cur[idx]=+t.value; o.pick=cur; }); }
+});
+render(); initRelay(); initPeer();
+</script>
+
+</body></html>
